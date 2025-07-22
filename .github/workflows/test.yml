@@ -1,0 +1,65 @@
+name: Test OIDC Token Generation
+ 
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+ 
+permissions:
+  id-token: write
+  contents: read
+ 
+jobs:
+  generate-token:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Get GitHub OIDC Token
+      id: get-token
+      run: |
+        # Request OIDC token from GitHub
+        TOKEN=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+          "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=nuget.org" | jq -r '.value')
+        echo "::add-mask::$TOKEN"
+        echo "GITHUB_TOKEN_LENGTH=${#TOKEN}" >> $GITHUB_OUTPUT
+        # Display token structure without exposing the actual token
+        echo "Token structure:"
+        echo "$TOKEN" | cut -d'.' -f1 | base64 -d | jq . || echo "Header decode failed"
+        echo "---"
+        echo "$TOKEN" | cut -d'.' -f2 | base64 -d | jq . || echo "Payload decode failed"
+        # Store token in output (masked)
+        echo "token=$TOKEN" >> $GITHUB_OUTPUT
+    - name: Display Token Information
+      run: |
+        echo "Token length: ${{ steps.get-token.outputs.GITHUB_TOKEN_LENGTH }}"
+        echo "Token audience: nuget.org"
+        echo "Token issuer: https://token.actions.githubusercontent.com"
+        echo "Repository: ${{ github.repository }}"
+        echo "Actor: ${{ github.actor }}"
+        echo "Ref: ${{ github.ref }}"
+        echo "SHA: ${{ github.sha }}"
+    - name: Create token artifact
+      run: |
+        mkdir -p token-output
+        echo "${{ steps.get-token.outputs.token }}" > token-output/github-oidc-token.txt
+        echo "Token saved to artifact for download"
+    - name: Upload token as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: github-oidc-token
+        path: token-output/github-oidc-token.txt
+        retention-days: 1
+    - name: Display download instructions
+      run: |
+        echo "============================================="
+        echo "To get the actual token:"
+        echo "1. Go to the Actions tab in your repository"
+        echo "2. Click on this workflow run"
+        echo "3. Download the 'github-oidc-token' artifact"
+        echo "4. Extract and open 'github-oidc-token.txt'"
+        echo "============================================="
+        echo "The token is configured with audience: nuget.org"
+        echo "This matches your GitHubTokenValidator configuration"
