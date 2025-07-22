@@ -1,0 +1,15 @@
+name: 'NuGet Login'
+description: 'Log in to NuGet using GitHub OIDC and get a short-lived API key'
+inputs:
+  user:
+    description: 'Username for NuGet.org (usually the GitHub username)'
+    required: true
+  source:
+    description: 'NuGet server source (must be a V3 index URL)'
+    required: true
+outputs:
+  NUGET_API_KEY:
+    description: 'The short-lived NuGet API key'
+runs:
+  using: 'node20'
+  main: 'index.js'
