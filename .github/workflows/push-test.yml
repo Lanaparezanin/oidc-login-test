@@ -1,0 +1,28 @@
+name: Push test
+on:
+  workflow_dispatch:
+
+jobs:
+  push:
+    permissions:
+      id-token: write  # 🔑 Required for OIDC
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: NuGet login
+        id: nuget_login
+        uses: ./ # your action path
+        with:
+          username: github
+          package-source: https://api.nuget.org/v3/index.json
+          install-cred-provider: true
+
+      - name: View token info
+        run: echo "${{ steps.nuget_login.outputs.token-info }}"
+
+      - name: Push package
+        run: dotnet nuget push artifacts/*.nupkg -s https://api.nuget.org/v3/index.json
+        env:
+          NUGET_TOKEN_INFO: ${{ steps.nuget_login.outputs.token-info }}
