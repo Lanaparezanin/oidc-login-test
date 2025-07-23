@@ -13,7 +13,7 @@ jobs:
 
       - name: NuGet login
         id: nuget_login
-        uses: ./ # your action path
+        uses: ./https://github.com/Lanaparezanin/oidc-login-test/blob/main/.github/workflows/test-nuget-login.yml
         with:
           username: github
           package-source: https://api.nuget.org/v3/index.json
