@@ -1,0 +1,16 @@
+{
+  "name": "nuget-login",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@actions/core": "^1.10.0",
+    "@actions/github": "^5.0.0",
+    "node-fetch": "^2.6.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
