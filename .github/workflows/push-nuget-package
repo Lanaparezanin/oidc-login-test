@@ -1,0 +1,4 @@
+      - name: Push NuGet package
+        run: dotnet nuget push ./my-package.nupkg -s https://api.nuget.org/v3/index.json
+        env:
+          NUGET_TOKEN_INFO: ${{ steps.nuget_login.outputs.token-info }}
