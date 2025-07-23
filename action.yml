@@ -7,6 +7,10 @@ inputs:
   source:
     description: 'NuGet server source (must be a V3 index URL)'
     required: true
+  audience:
+    description: 'OIDC audience to request'
+    required: false
+    default: 'api.nuget.org'
 outputs:
   NUGET_API_KEY:
     description: 'The short-lived NuGet API key'
