@@ -1,0 +1,30 @@
+name: Test NuGet Login
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: NuGet login
+        id: nuget_login
+        uses: Lanaparezanin/oidc-login-test@v1
+        with:
+          username: GitHubActions
+          package-source: https://api.nuget.org/v3/index.json
+
+      - name: Output token-info
+        run: echo "${{ steps.nuget_login.outputs.token-info }}"
