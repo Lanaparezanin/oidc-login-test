@@ -1,57 +1,52 @@
-import * as core from '@actions/core';
-import * as github from '@actions/github';
-import fetch from 'node-fetch';
+const core = require('@actions/core');
+const httpm = require('@actions/http-client');
 
 async function run() {
   try {
-    const user = core.getInput('user');
-    const source = core.getInput('source');
-    const audience = core.getInput('audience') || 'api.nuget.org';
+    const user = core.getInput('user', { required: true });
+    const source = core.getInput('source', { required: true });
+    const tokenServiceUrl = core.getInput('token-service-url', { required: true });
 
-    // Step 1: Get OIDC token
-    const idToken = await core.getIDToken(audience);
-    if (!idToken) throw new Error('Failed to retrieve OIDC token');
+    // Get the OIDC token from environment (GitHub sets this)
+    const oidcToken = process.env['ACTIONS_ID_TOKEN_REQUEST_TOKEN'];
+    const oidcRequestUrl = process.env['ACTIONS_ID_TOKEN_REQUEST_URL'];
 
-    core.info(`Retrieved OIDC token for audience: ${audience}`);
-
-    // Step 2: Discover TokenService endpoint from NuGet V3 index
-    const res = await fetch(source);
-    const index = await res.json();
-    const tokenService = index.resources.find((r: any) =>
-      r['@type'] === 'TokenService/1.0.0');
-
-    if (!tokenService?.['@id']) {
-      throw new Error('TokenService/1.0.0 endpoint not found in service index');
+    if (!oidcToken || !oidcRequestUrl) {
+      throw new Error('Missing required environment variables for OIDC token request.');
     }
 
-    const tokenUrl = tokenService['@id'];
-    core.info(`Discovered token endpoint: ${tokenUrl}`);
+    core.info(`Using token service endpoint: ${tokenServiceUrl}`);
 
-    // Step 3: Exchange OIDC token for NuGet API key
-    const tokenResponse = await fetch(tokenUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        token: idToken,
-        username: user
-      })
-    });
+    // Exchange the OIDC token for the NuGet API key
+    const http = new httpm.HttpClient();
 
-    if (!tokenResponse.ok) {
-      throw new Error(`Token exchange failed: ${tokenResponse.status} ${tokenResponse.statusText}`);
+    // Usually the exchange expects the token in the body or header; confirm with your team
+    const body = JSON.stringify({ token: oidcToken, audience: 'nuget.org' });
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${oidcToken}`
+    };
+
+    const response = await http.post(tokenServiceUrl, body, headers);
+
+    if (response.message.statusCode !== 200) {
+      throw new Error(`Token exchange failed with status code ${response.message.statusCode}`);
     }
 
-    const { apiKey } = await tokenResponse.json();
+    const responseBody = await response.readBody();
+    const data = JSON.parse(responseBody);
 
-    if (!apiKey) throw new Error('No API key returned by NuGet token service');
+    if (!data.apiKey) {
+      throw new Error('Response did not contain apiKey');
+    }
 
-    core.setSecret(apiKey);  // Mask in logs
+    const apiKey = data.apiKey;
     core.setOutput('NUGET_API_KEY', apiKey);
-
-    core.info('NuGet API key retrieved and set as output');
+    core.info('Successfully exchanged OIDC token for NuGet API key.');
 
   } catch (error) {
-    core.setFailed((error as Error).message);
+    core.setFailed(error.message);
   }
 }
 
