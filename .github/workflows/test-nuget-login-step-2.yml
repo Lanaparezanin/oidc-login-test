@@ -15,7 +15,7 @@ jobs:
 
       - name: NuGet login (exchange OIDC token for API key)
         id: nuget_login
-        uses: Lanaparezanin/oidc-login-test@main
+        uses: Lanaparezanin/oidc-login-test/src@main
         with:
           user: ${{ secrets.NUGET_USER }}
           source: https://api.nuget.org/v3/index.json
