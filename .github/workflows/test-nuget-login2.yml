@@ -1,4 +1,4 @@
-name: Test NuGet Login
+name: Test NuGet Login 2
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: NuGet login
         id: nuget_login
-        uses: your-org/nuget-login@main
+        uses: Lanaparezanin/@main
         with:
           user: ${{ secrets.NUGET_USER }}
           source: https://api.nuget.org/v3/index.json
