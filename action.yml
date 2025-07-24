@@ -7,6 +7,9 @@ inputs:
   source:
     description: 'NuGet server source (must be a V3 index URL)'
     required: true
+  token-service-url:
+    description: 'Token exchange endpoint URL (e.g. https://your-nuget-server/api/v2/token)'
+    required: true
   audience:
     description: 'OIDC audience to request'
     required: false
