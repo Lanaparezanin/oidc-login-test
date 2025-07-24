@@ -8,14 +8,15 @@ on:
     branches: [ main, master ]
 
 permissions:
-  id-token: write  # Allow requesting OIDC token
-  contents: read   # Optional, if you need repo content
+  id-token: write
+  contents: read
 
 jobs:
   nuget-login:
     runs-on: ubuntu-latest
     outputs:
       NUGET_API_KEY: ${{ steps.exchange-token.outputs.NUGET_API_KEY }}
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -23,48 +24,32 @@ jobs:
     - name: Get GitHub OIDC Token
       id: get-token
       run: |
+        echo "🔐 Getting OIDC token..."
         TOKEN=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
           "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=api.nuget.org" | jq -r '.value')
         echo "::add-mask::$TOKEN"
         echo "token=$TOKEN" >> $GITHUB_OUTPUT
+
     - name: Exchange OIDC token for NuGet API key
       id: exchange-token
       run: |
         echo "🔁 Exchanging OIDC token for NuGet API key..."
-    
-        # Build JSON request body
-        BODY=$(jq -n --arg username "- name: Checkout repository
-      uses: actions/checkout@v4
 
-    - name: Get GitHub OIDC Token
-      id: get-token
-      run: |
-        TOKEN=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-          "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=api.nuget.org" | jq -r '.value')
-        echo "::add-mask::$TOKEN"
-        echo "token=$TOKEN" >> $GITHUB_OUTPUT
-
-    - name: Exchange OIDC token for NuGet API key
-      id: exchange-token
-      run: |
-        echo "Exchanging OIDC token for NuGet API key..."
-        
         BODY=$(jq -n --arg username "lparezanin" --arg tokenType "ApiKey" \
           '{username: $username, tokenType: $tokenType}')
-        
-        echo "Request body: $BODY"
-    
+
+        echo "📦 Request body: $BODY"
+
         API_KEY_RESPONSE=$(curl -s -X POST "https://dev.nugettest.org/api/v2/token" \
           -H "Authorization: Bearer ${{ steps.get-token.outputs.token }}" \
-          -H "Content-Type: application/json")
+          -H "Content-Type: application/json" \
+          -H "Content-Length: $(echo -n "$BODY" | wc -c)" \
+          -d "$BODY")
 
-        echo "Raw response:"
-        echo "$API_KEY_RESPONSE"
+        echo "📝 Raw response: $API_KEY_RESPONSE"
 
-        # Try to parse JSON only if it’s valid
         if echo "$API_KEY_RESPONSE" | jq . > /dev/null 2>&1; then
           API_KEY=$(echo "$API_KEY_RESPONSE" | jq -r '.apiKey')
-
           if [ -z "$API_KEY" ] || [ "$API_KEY" == "null" ]; then
             echo "❌ Failed to extract API key from response"
             exit 1
@@ -74,50 +59,4 @@ jobs:
             echo "NUGET_API_KEY=$API_KEY" >> $GITHUB_OUTPUT
           fi
         else
-          echo "❌ Invalid JSON returned from token service"
-          echo "$API_KEY_RESPONSE"
-          -H "Content-Type: application/json" \
-          -d "$BODY")
-    
-        echo "Raw response: $API_KEY_RESPONSE"
-    
-        API_KEY=$(echo "$API_KEY_RESPONSE" | jq -r '.apiKey')
-    
-        if [ -z "$API_KEY" ] || [ "$API_KEY" == "null" ]; then
-          echo "❌ Failed to get API key"
-          exit 1
-        fi
-         echo "::add-mask::$API_KEY"
-    
-        echo "::add-mask::$API_KEY"
-        echo "NUGET_API_KEY=$API_KEY" >> $GITHUB_OUTPUT
-
-
-    # Optionally, you can add a step here that pushes your package using the API key
-    # - name: Push package
-    #   run: dotnet nuget push path/to/package.nupkg -k ${{ steps.exchange-token.outputs.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json" --arg tokenType "ApiKey" \
-          '{username: $username, tokenType: $tokenType}')
-    
-        # Send POST request to token service
-        API_KEY_RESPONSE=$(curl -s -X POST "https://dev.nugettest.org/api/v2/token" \
-          -H "Authorization: Bearer ${{ steps.get-token.outputs.token }}" \
-          -H "Content-Type: application/json" \
-          -d "$BODY")
-    
-        echo "📝 Raw response: $API_KEY_RESPONSE"
-    
-        # Extract API key from response
-        API_KEY=$(echo "$API_KEY_RESPONSE" | jq -r '.apiKey')
-    
-        # Handle error if key missing
-        if [ -z "$API_KEY" ] || [ "$API_KEY" == "null" ]; then
-          echo "❌ Failed to get API key"
-          exit 1
-        fi
-    
-        echo "::add-mask::$API_KEY"
-        echo "NUGET_API_KEY=$API_KEY" >> $GITHUB_OUTPUT
-
-    # Optionally, you can add a step here that pushes your package using the API key
-    # - name: Push package
-    #   run: dotnet nuget push path/to/package.nupkg -k ${{ steps.exchange-token.outputs.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
+          echo "❌ Invalid JSON retu
