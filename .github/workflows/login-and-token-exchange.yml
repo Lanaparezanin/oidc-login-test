@@ -26,7 +26,7 @@ jobs:
       run: |
         echo "🔐 Getting OIDC token..."
         TOKEN=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-          "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=dev.nuget.org" | jq -r '.value')
+          "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://dev.nugettest.org" | jq -r '.value')
         echo "::add-mask::$TOKEN"
         echo "token=$TOKEN" >> $GITHUB_OUTPUT
 
