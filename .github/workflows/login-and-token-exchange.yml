@@ -31,17 +31,33 @@ jobs:
     - name: Exchange OIDC token for NuGet API key
       id: exchange-token
       run: |
-        echo "Raw response: $RESPONSE"
+        echo "Exchanging OIDC token for NuGet API key..."
+    
         API_KEY_RESPONSE=$(curl -s -X POST "https://dev.nugettest.org/api/v2/token" \
           -H "Authorization: Bearer ${{ steps.get-token.outputs.token }}" \
           -H "Content-Type: application/json")
-        # Extract the API key from the JSON response - adjust key name accordingly
-        API_KEY=$(echo "$API_KEY_RESPONSE" | jq -r '.apiKey')
-        if [ -z "$API_KEY" ] || [ "$API_KEY" == "null" ]; then
-          echo "Failed to get API key"
+
+        echo "Raw response:"
+        echo "$API_KEY_RESPONSE"
+
+        # Try to parse JSON only if it’s valid
+        if echo "$API_KEY_RESPONSE" | jq . > /dev/null 2>&1; then
+          API_KEY=$(echo "$API_KEY_RESPONSE" | jq -r '.apiKey')
+
+          if [ -z "$API_KEY" ] || [ "$API_KEY" == "null" ]; then
+            echo "❌ Failed to extract API key from response"
+            exit 1
+          else
+            echo "✅ Successfully extracted API key"
+            echo "::add-mask::$API_KEY"
+            echo "NUGET_API_KEY=$API_KEY" >> $GITHUB_OUTPUT
+          fi
+        else
+          echo "❌ Invalid JSON returned from token service"
+          echo "$API_KEY_RESPONSE"
           exit 1
         fi
-        echo "::add-mask::$API_KEY"
+         echo "::add-mask::$API_KEY"
         echo "NUGET_API_KEY=$API_KEY" >> $GITHUB_OUTPUT
 
     # Optionally, you can add a step here that pushes your package using the API key
