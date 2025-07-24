@@ -59,4 +59,7 @@ jobs:
             echo "NUGET_API_KEY=$API_KEY" >> $GITHUB_OUTPUT
           fi
         else
-          echo "❌ Invalid JSON retu
+           echo "❌ Invalid JSON returned from token service"
+          echo "$API_KEY_RESPONSE"
+          exit 1
+        fi
