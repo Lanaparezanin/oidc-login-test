@@ -1,16 +1,18 @@
 {
   "name": "nuget-login",
   "version": "1.0.0",
+  "description": "GitHub Action to login to NuGet using OIDC and get a short-lived API key",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc"
+    "build": "ncc build src/index.js -o dist"
   },
+  "author": "lparezanin",
+  "license": "MIT",
   "dependencies": {
     "@actions/core": "^1.10.0",
-    "@actions/github": "^5.0.0",
-    "node-fetch": "^2.6.1"
+    "@actions/tool-cache": "^3.4.0"
   },
   "devDependencies": {
-    "typescript": "^5.0.0"
+    "@vercel/ncc": "^0.36.1"
   }
 }
