@@ -31,6 +31,7 @@ jobs:
     - name: Exchange OIDC token for NuGet API key
       id: exchange-token
       run: |
+        echo "Raw response: $RESPONSE"
         API_KEY_RESPONSE=$(curl -s -X POST "https://dev.nugettest.org/api/v2/token" \
           -H "Authorization: Bearer ${{ steps.get-token.outputs.token }}" \
           -H "Content-Type: application/json")
