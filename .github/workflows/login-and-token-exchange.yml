@@ -29,9 +29,6 @@ jobs:
           "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://dev.nugettest.org" | jq -r '.value')
         echo "::add-mask::$TOKEN"
         echo "token=$TOKEN" >> $GITHUB_OUTPUT
-        echo "OIDC TOKEN PAYLOAD:"
-        echo "$TOKEN" | cut -d '.' -f2 | base64 -d
-
 
     - name: Exchange OIDC token for NuGet API key
       id: exchange-token
