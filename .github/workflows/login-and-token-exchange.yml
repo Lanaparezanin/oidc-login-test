@@ -63,3 +63,7 @@ jobs:
           echo "$API_KEY_RESPONSE"
           exit 1
         fi
+    - name: Push package
+      run: dotnet nuget push ./bin/Release/*.nupkg \
+        --api-key "${{ steps.exchange-token.outputs.NUGET_API_KEY }}" \
+        --source https://dev.nugettest.org/v3/index.json
