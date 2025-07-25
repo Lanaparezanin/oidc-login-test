@@ -1,0 +1,69 @@
+name: NuGet Login and Token Exchange
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  nuget-login:
+    runs-on: ubuntu-latest
+    outputs:
+      NUGET_API_KEY: ${{ steps.exchange-token.outputs.NUGET_API_KEY }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Get GitHub OIDC Token
+      id: get-token
+      run: |
+        echo "🔐 Getting OIDC token..."
+        TOKEN=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+          "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://dev.nugettest.org" | jq -r '.value')
+        echo "::add-mask::$TOKEN"
+        echo "token=$TOKEN" >> $GITHUB_OUTPUT
+
+    - name: Exchange OIDC token for NuGet API key
+      id: exchange-token
+      run: |
+        echo "🔁 Exchanging OIDC token for NuGet API key..."
+
+        BODY=$(jq -n --arg username "lparezanin" --arg tokenType "ApiKey" \
+          '{username: $username, tokenType: $tokenType}')
+
+        echo "📦 Request body: $BODY"
+
+        API_KEY_RESPONSE=$(curl -s -X POST "https://dev.nugettest.org/api/v2/token" \
+          -H "Authorization: Bearer ${{ steps.get-token.outputs.token }}" \
+          -H "Content-Type: application/json" \
+          -H "Content-Length: $(echo -n "$BODY" | wc -c)" \
+          -d "$BODY")
+
+        echo "📝 Raw response: $API_KEY_RESPONSE"
+
+        if echo "$API_KEY_RESPONSE" | jq . > /dev/null 2>&1; then
+          API_KEY=$(echo "$API_KEY_RESPONSE" | jq -r '.apiKey')
+          if [ -z "$API_KEY" ] || [ "$API_KEY" == "null" ]; then
+            echo "❌ Failed to extract API key from response"
+            exit 1
+          else
+            echo "✅ Successfully extracted API key"
+            echo "::add-mask::$API_KEY"
+            echo "NUGET_API_KEY=$API_KEY" >> $GITHUB_OUTPUT
+          fi
+        else
+           echo "❌ Invalid JSON returned from token service"
+          echo "$API_KEY_RESPONSE"
+          exit 1
+        fi
+    - name: Push package
+      run: dotnet nuget push ./src/*.nupkg \
+        --api-key "${{ steps.exchange-token.outputs.NUGET_API_KEY }}" \
+        --source https://dev.nugettest.org/v3/index.json
